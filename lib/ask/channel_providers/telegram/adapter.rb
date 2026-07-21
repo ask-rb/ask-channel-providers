@@ -153,6 +153,7 @@ module Ask
             @bot&.send_message(chat_id: chat_id, text: text, parse_mode: "Markdown")
           end
         rescue => e
+          Ask::Coder::Log.error("send_card failed", error: e.message) if defined?(Ask::Coder::Log)
           nil
         end
 
@@ -200,7 +201,7 @@ module Ask
 
           # Handle built-in commands
           case text.strip
-          when "/id", "/start", "/new", "/sessions", "/status", "/projects", "/mode", "/help", "/models", "/goal"
+          when "/id", "/start", "/new", "/sessions", "/status", "/projects", "/mode", "/help", "/models", "/goal", "/sync"
             handle_command(chat_id, user_id, text.strip)
             return
           end
@@ -219,8 +220,8 @@ module Ask
           when "/id"
             @bot&.send_message(chat_id: chat_id, text: "Your Telegram user ID: `#{user_id}`")
           when "/start"
-            @bot&.send_message(chat_id: chat_id, text: "🤖 Askoda bot active!\n\nCommands:\n/id  — get your Telegram user ID\n/new — start a new conversation\n\nJust type anything to chat with the coding agent.")
-          when "/new", "/sessions", "/status", "/projects", "/mode", "/help", "/models", "/goal"
+            @bot&.send_message(chat_id: chat_id, text: "🤖 Askoda bot active!\n\nSend /help to see all commands.\n/id - get your user ID\n/new - start fresh conversation")
+          when "/new", "/sessions", "/status", "/projects", "/mode", "/help", "/models", "/goal", "/sync"
             @message_handler&.call(
               chat_id: chat_id,
               user_id: user_id,
