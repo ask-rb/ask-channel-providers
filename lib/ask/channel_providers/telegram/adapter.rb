@@ -74,13 +74,23 @@ module Ask
             callback_id = data.sub(":allow", "")
             if (queue = @pending_permissions.delete(callback_id))
               queue << "allow"
+              return
             end
           elsif data && data.include?(":deny")
             callback_id = data.sub(":deny", "")
             if (queue = @pending_permissions.delete(callback_id))
               queue << "deny"
+              return
             end
           end
+
+          # Forward all other callbacks to the engine's callback handler
+          @callback_handler&.call(
+            chat_id: chat_id,
+            user_id: user_id,
+            data: data,
+            callback_query_id: cq_id
+          )
         rescue => e
           # Silently handle callback errors
         end
@@ -100,6 +110,11 @@ module Ask
         end
 
         public
+
+        # Set a handler for non-permission callbacks (session switching, etc.)
+        def set_callback_handler(handler)
+          @callback_handler = handler
+        end
 
         # Send a rich card rendered as markdown + inline keyboards.
         def send_card(chat_id, card)

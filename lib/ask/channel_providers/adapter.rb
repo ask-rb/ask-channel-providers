@@ -90,6 +90,12 @@ module Ask
         lines.join("\n").strip
       end
 
+      # Register a callback handler for interactive button presses.
+      # Called with { chat_id:, user_id:, data:, callback_query_id: }
+      def set_callback_handler(handler)
+        @callback_handler = handler
+      end
+
       # Whether the channel connection is active.
       #
       # @return [Boolean]
