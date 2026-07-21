@@ -205,12 +205,6 @@ module Ask
             return
           end
 
-          # Handle /model (with optional argument) — pass through to engine
-          if text.strip == "/model" || text.strip.start_with?("/model ")
-            handle_command(chat_id, user_id, text.strip)
-            return
-          end
-
           @message_handler.call(
             chat_id: chat_id,
             user_id: user_id,
@@ -234,25 +228,6 @@ module Ask
               text: command,
               raw: nil
             )
-          when "/model"
-            @message_handler&.call(
-              chat_id: chat_id,
-              user_id: user_id,
-              session_key: chat_id < 0 ? chat_id : user_id,
-              text: command,
-              raw: nil
-            )
-          else
-            # Handle /model <id> — pass through with the full command text
-            if command.start_with?("/model ")
-              @message_handler&.call(
-                chat_id: chat_id,
-                user_id: user_id,
-                session_key: chat_id < 0 ? chat_id : user_id,
-                text: command,
-                raw: nil
-              )
-            end
           end
         rescue => e
           # Silently handle send errors during command responses
