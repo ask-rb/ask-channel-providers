@@ -145,7 +145,13 @@ module Ask
 
           # Handle built-in commands
           case text.strip
-          when "/id", "/start", "/new", "/sessions"
+          when "/id", "/start", "/new", "/sessions", "/status"
+            handle_command(chat_id, user_id, text.strip)
+            return
+          end
+
+          # Handle /model (with optional argument) — pass through to engine
+          if text.strip == "/model" || text.strip.start_with?("/model ")
             handle_command(chat_id, user_id, text.strip)
             return
           end
@@ -165,7 +171,7 @@ module Ask
             @bot&.send_message(chat_id: chat_id, text: "Your Telegram user ID: `#{user_id}`")
           when "/start"
             @bot&.send_message(chat_id: chat_id, text: "🤖 Askoda bot active!\n\nCommands:\n/id  — get your Telegram user ID\n/new — start a new conversation\n\nJust type anything to chat with the coding agent.")
-          when "/new", "/sessions"
+          when "/new", "/sessions", "/status"
             @message_handler&.call(
               chat_id: chat_id,
               user_id: user_id,
@@ -173,6 +179,25 @@ module Ask
               text: command,
               raw: nil
             )
+          when "/model"
+            @message_handler&.call(
+              chat_id: chat_id,
+              user_id: user_id,
+              session_key: chat_id < 0 ? chat_id : user_id,
+              text: command,
+              raw: nil
+            )
+          else
+            # Handle /model <id> — pass through with the full command text
+            if command.start_with?("/model ")
+              @message_handler&.call(
+                chat_id: chat_id,
+                user_id: user_id,
+                session_key: chat_id < 0 ? chat_id : user_id,
+                text: command,
+                raw: nil
+              )
+            end
           end
         rescue => e
           # Silently handle send errors during command responses
