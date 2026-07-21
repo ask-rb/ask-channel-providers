@@ -33,17 +33,17 @@ module Ask
 
       # Add a text block to the last section.
       def text(content, style: nil)
-        last_section << TextBlock.new(content, style: style)
+        last_section << TextBlock.new(content: content, style: style)
       end
 
       # Add a button to the last section.
       def button(label, callback: nil, url: nil)
-        last_section << Button.new(label, callback: callback, url: url)
+        last_section << Button.new(label: label, callback: callback, url: url)
       end
 
       # Add a table to the last section.
       def table(header:, rows:)
-        last_section << Table.new(header, rows)
+        last_section << Table.new(header: header, rows: rows)
       end
 
       # Add a divider line.
