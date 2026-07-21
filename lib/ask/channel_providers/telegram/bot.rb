@@ -18,6 +18,7 @@ module Ask
       #   bot.stop
       class Bot
         attr_reader :token, :bot_user_id
+        attr_accessor :on_callback
 
         # @param token [String] Telegram bot token from @BotFather
         def initialize(token:)
@@ -25,6 +26,7 @@ module Ask
           @client = ::Telegram::Bot::Client.new(token)
           @running = false
           @on_message = nil
+          @on_callback = nil
           @poll_thread = nil
           @last_update_id = 0
           @bot_user_id = nil
@@ -33,7 +35,8 @@ module Ask
         # Start polling for messages.
         #
         # @param interval [Float] seconds between polls
-        # @param &on_message [Proc] called with { chat_id:, user_id:, text:, date:, raw: }
+        # @param on_message [Proc] called with { chat_id:, user_id:, text:, date:, raw: }
+        # @param on_callback [Proc] called with { callback_query_id:, data:, chat_id:, user_id:, message_id: }
         def start(interval: 1.0, &on_message)
           @on_message = on_message
           @running = true
@@ -53,17 +56,37 @@ module Ask
         end
 
         # Send a text message to a chat.
-        #
-        # @param chat_id [Integer] the chat ID
-        # @param text [String] the message text
-        # @param parse_mode [String, nil] 'Markdown' or 'HTML'
-        # @return [Hash, nil] the API response
         def send_message(chat_id:, text:, parse_mode: nil)
           params = { chat_id: chat_id, text: text }
           params[:parse_mode] = parse_mode if parse_mode
           @client.api.send_message(params)
         rescue ::Telegram::Bot::Exceptions::Base => e
           raise Ask::ChannelProviders::APIError, "Telegram API error: #{e.message}"
+        end
+
+        # Send a message with inline keyboard buttons.
+        #
+        # @param chat_id [Integer] the chat ID
+        # @param text [String] the message text
+        # @param buttons [Array<Array<Hash>>] rows of buttons, each { text:, callback_data: }
+        # @param parse_mode [String, nil] 'Markdown' or 'HTML'
+        # @return [Hash, nil] the API response
+        def send_keyboard_message(chat_id:, text:, buttons:, parse_mode: nil)
+          reply_markup = { inline_keyboard: buttons }
+          params = { chat_id: chat_id, text: text, reply_markup: reply_markup }
+          params[:parse_mode] = parse_mode if parse_mode
+          @client.api.send_message(params)
+        rescue ::Telegram::Bot::Exceptions::Base => e
+          raise Ask::ChannelProviders::APIError, "Telegram API error: #{e.message}"
+        end
+
+        # Answer a callback query (required by Telegram, removes the loading spinner).
+        def answer_callback_query(callback_query_id:, text: nil)
+          params = { callback_query_id: callback_query_id }
+          params[:text] = text if text
+          @client.api.answer_callback_query(params)
+        rescue ::Telegram::Bot::Exceptions::Base
+          # Silently ignore errors
         end
 
         # Edit a message (for streaming updates).
@@ -128,6 +151,12 @@ module Ask
         end
 
         def process_update(update)
+          # Handle callback queries (inline keyboard button clicks)
+          if update.respond_to?(:callback_query) && update.callback_query
+            handle_callback_query(update.callback_query)
+            return
+          end
+
           message = extract_message(update)
           return unless message
 
@@ -149,6 +178,23 @@ module Ask
           }
 
           @on_message&.call(msg)
+        end
+
+        def handle_callback_query(cq)
+          return unless @on_callback
+          data = cq.respond_to?(:data) ? cq.data : nil
+          msg = cq.respond_to?(:message) ? cq.message : nil
+          from = cq.respond_to?(:from) ? cq.from : nil
+          return unless data && msg && from
+
+          @on_callback.call(
+            callback_query_id: cq.respond_to?(:id) ? cq.id : nil,
+            data: data,
+            chat_id: msg.respond_to?(:chat) && msg.chat.respond_to?(:id) ? msg.chat.id : nil,
+            user_id: from.respond_to?(:id) ? from.id : nil,
+            message_id: msg.respond_to?(:message_id) ? msg.message_id : nil,
+            raw: cq
+          )
         end
 
         def extract_message(update)

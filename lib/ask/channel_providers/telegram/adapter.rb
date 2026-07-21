@@ -18,6 +18,8 @@ module Ask
           @bot = nil
           @bot_user_id = nil
           @message_handler = nil
+          @callback_handler = nil
+          @pending_permissions = {}  # callback_data -> Queue for approval responses
         end
 
         def start(config: {}, &on_message)
@@ -26,6 +28,7 @@ module Ask
           @bot.start do |msg|
             handle_incoming(msg)
           end
+          @bot.on_callback = method(:handle_callback)
           @bot_user_id = @bot.bot_user_id
         end
 
@@ -56,6 +59,32 @@ module Ask
           nil
         end
 
+        # Handle inline keyboard button clicks.
+        def handle_callback(callback)
+          cq_id = callback[:callback_query_id]
+          data = callback[:data]
+          chat_id = callback[:chat_id]
+          user_id = callback[:user_id]
+
+          # Answer the callback (removes loading spinner on the button)
+          @bot&.answer_callback_query(callback_query_id: cq_id)
+
+          # Check if this is a permission approval callback
+          if data && data.include?(":allow")
+            callback_id = data.sub(":allow", "")
+            if (queue = @pending_permissions.delete(callback_id))
+              queue << "allow"
+            end
+          elsif data && data.include?(":deny")
+            callback_id = data.sub(":deny", "")
+            if (queue = @pending_permissions.delete(callback_id))
+              queue << "deny"
+            end
+          end
+        rescue => e
+          # Silently handle callback errors
+        end
+
         private
 
         def try_send_markdown(chat_id, text)
@@ -72,18 +101,32 @@ module Ask
 
         public
 
-        # Send an approval request.
+        # Send an approval request with inline buttons.
+        # Returns the approval Queue for the engine to wait on.
         def request_approval(chat_id, tool_name:, risk_level:, details:)
           risk_label = {
             "low" => "Low Risk", "medium" => "Medium Risk",
             "high" => "High Risk", "critical" => "Critical Risk"
           }.fetch(risk_level, risk_level)
 
+          callback_id = "perm:#{chat_id}:#{Time.now.to_i}"
           text = ["🔐 Approval Required",
                   "Tool: #{tool_name} (#{risk_label})",
                   details].join("\n")
 
-          @bot&.send_message(chat_id: chat_id, text: text)
+          buttons = [
+            [{ text: "✅ Approve", callback_data: "#{callback_id}:allow" },
+             { text: "❌ Deny", callback_data: "#{callback_id}:deny" }]
+          ]
+
+          queue = Queue.new
+          @pending_permissions[callback_id] = queue
+
+          @bot&.send_keyboard_message(
+            chat_id: chat_id, text: text, buttons: buttons
+          )
+
+          queue  # Engine waits on this queue for the decision
         rescue => e
           nil
         end

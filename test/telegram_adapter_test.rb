@@ -41,13 +41,16 @@ class TelegramAdapterTest < Minitest::Test
     @adapter.edit_message(123, 1, "hello")
   end
 
-  def test_request_approval_returns_nil_without_bot
-    assert_nil @adapter.request_approval(123, tool_name: "Bash", risk_level: "medium", details: "rm -rf /")
+  def test_request_approval_returns_queue_without_bot
+    result = @adapter.request_approval(123, tool_name: "Bash", risk_level: "medium", details: "rm -rf /")
+    assert_kind_of Thread::Queue, result, "should return a Queue for the engine to wait on"
   end
 
   def test_request_approval_formats_risk_levels
-    assert_nil @adapter.request_approval(123, tool_name: "Write", risk_level: "critical", details: "danger")
-    assert_nil @adapter.request_approval(123, tool_name: "Write", risk_level: "unknown_level", details: "???")
+    r1 = @adapter.request_approval(123, tool_name: "Write", risk_level: "critical", details: "danger")
+    r2 = @adapter.request_approval(123, tool_name: "Write", risk_level: "unknown_level", details: "???")
+    assert_kind_of Thread::Queue, r1
+    assert_kind_of Thread::Queue, r2
   end
 
   def test_allows_authorized_users

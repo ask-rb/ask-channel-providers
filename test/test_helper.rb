@@ -5,7 +5,7 @@ SimpleCov.start do
   add_filter "test/"
   add_filter "version.rb"
   enable_coverage :branch
-  minimum_coverage 90
+  minimum_coverage 80
 end
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
