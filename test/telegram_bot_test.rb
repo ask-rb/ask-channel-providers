@@ -43,21 +43,26 @@ class TelegramBotTest < Minitest::Test
   end
 
   def test_edit_message
-    @api.expects(:edit_message_text).with(chat_id: 123, message_id: 1, text: "Edited").returns("ok")
+    @api.expects(:edit_message_text).with({chat_id: 123, message_id: 1, text: "Edited"}).returns("ok")
     @bot.edit_message(chat_id: 123, message_id: 1, text: "Edited")
   end
 
   def test_edit_message_silently_ignores_not_modified
     err = make_telegram_error("message is not modified")
-    @api.expects(:edit_message_text).raises(err)
+    @api.expects(:edit_message_text).with({chat_id: 123, message_id: 1, text: "Same"}).raises(err)
     @bot.edit_message(chat_id: 123, message_id: 1, text: "Same")
   end
 
   def test_edit_message_re_raises_other_errors
-    @api.expects(:edit_message_text).raises(make_telegram_error("other error"))
+    @api.expects(:edit_message_text).with({chat_id: 123, message_id: 1, text: "Fail"}).raises(make_telegram_error("other error"))
     assert_raises(Ask::ChannelProviders::APIError) do
       @bot.edit_message(chat_id: 123, message_id: 1, text: "Fail")
     end
+  end
+
+  def test_edit_message_with_parse_mode
+    @api.expects(:edit_message_text).with({chat_id: 123, message_id: 1, text: "*bold*", parse_mode: "Markdown"}).returns("ok")
+    @bot.edit_message(chat_id: 123, message_id: 1, text: "*bold*", parse_mode: "Markdown")
   end
 
   def test_delete_message

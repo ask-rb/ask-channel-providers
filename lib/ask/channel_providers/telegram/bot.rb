@@ -71,10 +71,10 @@ module Ask
         # @param chat_id [Integer] the chat ID
         # @param message_id [Integer] the message ID to edit
         # @param text [String] the new text
-        def edit_message(chat_id:, message_id:, text:)
-          @client.api.edit_message_text(
-            chat_id: chat_id, message_id: message_id, text: text
-          )
+        def edit_message(chat_id:, message_id:, text:, parse_mode: nil)
+          params = { chat_id: chat_id, message_id: message_id, text: text }
+          params[:parse_mode] = parse_mode if parse_mode
+          @client.api.edit_message_text(params)
         rescue ::Telegram::Bot::Exceptions::Base => e
           desc = e.respond_to?(:data) ? (e.data[:description] || e.data["description"] || e.message) : e.message
           raise Ask::ChannelProviders::APIError, e.message unless desc.include?("message is not modified")

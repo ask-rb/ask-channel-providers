@@ -40,7 +40,8 @@ module Ask
 
         # Send a text message, returns the message ID.
         def send_message(chat_id, text)
-          response = @bot&.send_message(chat_id: chat_id, text: text)
+          response = try_send_markdown(chat_id, text)
+          response ||= @bot&.send_message(chat_id: chat_id, text: text)
           response&.dig("result", "message_id")
         rescue => e
           nil
@@ -49,10 +50,27 @@ module Ask
         # Edit a previously sent message (streaming updates).
         def edit_message(chat_id, message_id, text)
           return unless @bot && message_id
-          @bot.edit_message(chat_id: chat_id, message_id: message_id, text: text)
+          try_edit_markdown(chat_id, message_id, text) ||
+            @bot.edit_message(chat_id: chat_id, message_id: message_id, text: text)
         rescue => e
           nil
         end
+
+        private
+
+        def try_send_markdown(chat_id, text)
+          @bot&.send_message(chat_id: chat_id, text: text, parse_mode: "Markdown")
+        rescue
+          nil  # fall back to plain text
+        end
+
+        def try_edit_markdown(chat_id, message_id, text)
+          @bot&.edit_message(chat_id: chat_id, message_id: message_id, text: "⏳ #{text}", parse_mode: "Markdown")
+        rescue
+          nil  # fall back to plain text
+        end
+
+        public
 
         # Send an approval request.
         def request_approval(chat_id, tool_name:, risk_level:, details:)
@@ -105,7 +123,6 @@ module Ask
           when "/start"
             @bot&.send_message(chat_id: chat_id, text: "🤖 Askoda bot active!\n\nCommands:\n/id  — get your Telegram user ID\n/new — start a new conversation\n\nJust type anything to chat with the coding agent.")
           when "/new"
-            # Pass through to engine FIRST (before bot send, so engine callback runs even if send fails)
             @message_handler&.call(
               chat_id: chat_id,
               user_id: user_id,
@@ -113,7 +130,6 @@ module Ask
               text: "/new",
               raw: nil
             )
-            @bot&.send_message(chat_id: chat_id, text: "🔄 Starting a new conversation...")
           end
         rescue => e
           # Silently handle send errors during command responses
