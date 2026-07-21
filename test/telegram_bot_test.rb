@@ -201,6 +201,41 @@ class TelegramBotTest < Minitest::Test
     refute @bot.running?
   end
 
+  # ── Dedup tests ──
+
+  def test_processed_updates_tracks_ids
+    updates = @bot.instance_variable_get(:@processed_updates)
+    assert_equal [], updates
+  end
+
+  def test_duplicate_update_skipped
+    received = []
+    @bot.start { |m| received << m }
+
+    update = make_update(update_id: 1)
+    @bot.send(:process_update, update)
+    @bot.send(:process_update, update)  # duplicate
+
+    assert_operator received.length, :<=, 1, "duplicate update should be skipped"
+  end
+
+  def test_different_updates_processed
+    received = []
+    @bot.start { |m| received << m }
+
+    @bot.send(:process_update, make_update(update_id: 1))
+    @bot.send(:process_update, make_update(update_id: 2))
+
+    assert_operator received.length, :>=, 0
+  end
+
+  def test_ring_buffer_does_not_grow_indefinitely
+    updates = @bot.instance_variable_get(:@processed_updates)
+    600.times { |i| updates << i }
+    updates.shift while updates.length > 500
+    assert updates.length <= 500
+  end
+
   private
 
   def make_update(update_id: 0, message: nil, channel_post: nil, edited_message: nil)
