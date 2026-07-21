@@ -60,31 +60,31 @@ module Ask
 
         # Send a text message to a chat.
         def send_message(chat_id:, text:, parse_mode: nil)
+          $stdout.puts "[send] msg #{text.length}ch#{parse_mode ? " (#{parse_mode})" : ""}" if ENV["DEBUG"] == "1"
           params = { chat_id: chat_id, text: text }
           params[:parse_mode] = parse_mode if parse_mode
           @client.api.send_message(params)
         rescue ::Telegram::Bot::Exceptions::Base => e
+          $stdout.puts "[send] FAIL: #{e.message[0..80]}" if ENV["DEBUG"] == "1"
           raise Ask::ChannelProviders::APIError, "Telegram API error: #{e.message}"
         end
 
         # Send a message with inline keyboard buttons.
-        #
-        # @param chat_id [Integer] the chat ID
-        # @param text [String] the message text
-        # @param buttons [Array<Array<Hash>>] rows of buttons, each { text:, callback_data: }
-        # @param parse_mode [String, nil] 'Markdown' or 'HTML'
-        # @return [Hash, nil] the API response
         def send_keyboard_message(chat_id:, text:, buttons:, parse_mode: nil)
+          n = buttons.flatten.length
+          $stdout.puts "[send] #{n} btn(s), #{text.length}ch" if ENV["DEBUG"] == "1"
           reply_markup = { inline_keyboard: buttons }
           params = { chat_id: chat_id, text: text, reply_markup: reply_markup }
           params[:parse_mode] = parse_mode if parse_mode
           @client.api.send_message(params)
         rescue ::Telegram::Bot::Exceptions::Base => e
+          $stdout.puts "[send] KEYBOARD FAIL: #{e.message[0..80]}" if ENV["DEBUG"] == "1"
           raise Ask::ChannelProviders::APIError, "Telegram API error: #{e.message}"
         end
 
         # Answer a callback query (required by Telegram, removes the loading spinner).
         def answer_callback_query(callback_query_id:, text: nil)
+          $stdout.puts "[send] callback answer" if ENV["DEBUG"] == "1"
           params = { callback_query_id: callback_query_id }
           params[:text] = text if text
           @client.api.answer_callback_query(params)
@@ -93,11 +93,8 @@ module Ask
         end
 
         # Edit a message (for streaming updates).
-        #
-        # @param chat_id [Integer] the chat ID
-        # @param message_id [Integer] the message ID to edit
-        # @param text [String] the new text
         def edit_message(chat_id:, message_id:, text:, parse_mode: nil)
+          $stdout.puts "[send] edit msg #{message_id} #{text.length}ch" if ENV["DEBUG"] == "1"
           params = { chat_id: chat_id, message_id: message_id, text: text }
           params[:parse_mode] = parse_mode if parse_mode
           @client.api.edit_message_text(params)
