@@ -21,6 +21,8 @@ module Ask
         attr_accessor :on_callback
 
         # @param token [String] Telegram bot token from @BotFather
+        MAX_DEDUP_CACHE = 500
+
         def initialize(token:)
           @token = token
           @client = ::Telegram::Bot::Client.new(token)
@@ -30,6 +32,7 @@ module Ask
           @poll_thread = nil
           @last_update_id = 0
           @bot_user_id = nil
+          @processed_updates = []  # ring buffer of recent update_ids
         end
 
         # Start polling for messages.
@@ -151,6 +154,14 @@ module Ask
         end
 
         def process_update(update)
+          # Dedup: skip already-processed update_ids
+          uid = update.respond_to?(:update_id) ? update.update_id : nil
+          if uid && @processed_updates.include?(uid)
+            return
+          end
+          @processed_updates << uid if uid
+          @processed_updates.shift if @processed_updates.length > MAX_DEDUP_CACHE
+
           # Handle callback queries (inline keyboard button clicks)
           if update.respond_to?(:callback_query) && update.callback_query
             handle_callback_query(update.callback_query)
