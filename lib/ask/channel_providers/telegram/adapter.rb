@@ -102,7 +102,7 @@ module Ask
 
           # Handle built-in commands
           case text.strip
-          when "/id", "/start", "/new"
+          when "/id", "/start", "/new", "/sessions"
             handle_command(chat_id, user_id, text.strip)
             return
           end
@@ -122,12 +122,12 @@ module Ask
             @bot&.send_message(chat_id: chat_id, text: "Your Telegram user ID: `#{user_id}`")
           when "/start"
             @bot&.send_message(chat_id: chat_id, text: "🤖 Askoda bot active!\n\nCommands:\n/id  — get your Telegram user ID\n/new — start a new conversation\n\nJust type anything to chat with the coding agent.")
-          when "/new"
+          when "/new", "/sessions"
             @message_handler&.call(
               chat_id: chat_id,
               user_id: user_id,
               session_key: chat_id < 0 ? chat_id : user_id,
-              text: "/new",
+              text: command,
               raw: nil
             )
           end

@@ -207,8 +207,8 @@ class TelegramAdapterTest < Minitest::Test
   end
 
   def test_new_command_passes_through_to_engine
-    received = false
-    @adapter.start { |msg| received = true }
+    handler = nil
+    @adapter.start { |msg| handler = msg }
 
     @adapter.send(:handle_incoming, {
       chat_id: 100, user_id: 123, text: "/new",
@@ -216,7 +216,22 @@ class TelegramAdapterTest < Minitest::Test
       raw: { "message_id" => 1, "date" => 0, "chat" => { "id" => 100, "type" => "private" }, "from" => { "id" => 123 }, "text" => "/new" }
     })
 
-    assert received, "/new should pass through to the engine"
+    refute_nil handler, "/new should pass through to the engine"
+    assert_equal "/new", handler[:text] if handler
+  end
+
+  def test_sessions_command_passes_through_to_engine
+    handler = nil
+    @adapter.start { |msg| handler = msg }
+
+    @adapter.send(:handle_incoming, {
+      chat_id: 100, user_id: 123, text: "/sessions",
+      is_group: false,
+      raw: { "message_id" => 1, "date" => 0, "chat" => { "id" => 100, "type" => "private" }, "from" => { "id" => 123 }, "text" => "/sessions" }
+    })
+
+    refute_nil handler, "/sessions should pass through to the engine"
+    assert_equal "/sessions", handler[:text] if handler
   end
 
   def test_non_command_messages_still_flow_to_engine
