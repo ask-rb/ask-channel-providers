@@ -101,6 +101,46 @@ module Ask
 
         public
 
+        # Send a rich card rendered as markdown + inline keyboards.
+        def send_card(chat_id, card)
+          lines = []
+          buttons = []
+
+          card.sections.each do |section|
+            lines << "**#{section.title}**" unless section.title.empty?
+            section.components.each do |comp|
+              case comp
+              when Card::TextBlock
+                lines << comp.content
+              when Card::Button
+                if comp.callback
+                  buttons << [{ text: comp.label, callback_data: comp.callback }]
+                elsif comp.url
+                  lines << "[#{comp.label}](#{comp.url})"
+                end
+              when Card::Table
+                lines << "| #{comp.header.join(' | ')} |"
+                lines << "| #{comp.header.map { |h| '—' * h.length }.join(' | ')} |"
+                comp.rows.each { |row| lines << "| #{row.join(' | ')} |" }
+              when Card::Divider
+                lines << "───"
+              end
+            end
+            lines << ""
+          end
+
+          text = lines.join("\n").strip
+          return if text.empty?
+
+          if buttons.any?
+            @bot&.send_keyboard_message(chat_id: chat_id, text: text, buttons: buttons)
+          else
+            @bot&.send_message(chat_id: chat_id, text: text, parse_mode: "Markdown")
+          end
+        rescue => e
+          nil
+        end
+
         # Send an approval request with inline buttons.
         # Returns the approval Queue for the engine to wait on.
         def request_approval(chat_id, tool_name:, risk_level:, details:)

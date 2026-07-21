@@ -55,6 +55,41 @@ module Ask
         raise NotImplementedError, "#{self.class} must implement #request_approval"
       end
 
+      # Send a rich card (cross-platform UI).
+      #
+      # Each adapter renders the Card to its native format.
+      # Default implementation falls back to markdown text.
+      #
+      # @param chat_id [Integer, String] the chat identifier
+      # @param card [Card] the card to render
+      def send_card(chat_id, card)
+        text = render_card_to_text(card)
+        send_message(chat_id, text) if text
+      end
+
+      # Render a card to plain text fallback.
+      # Override in platform adapters for rich rendering.
+      def render_card_to_text(card)
+        lines = []
+        card.sections.each do |section|
+          lines << "**#{section.title}**" unless section.title.empty?
+          section.components.each do |comp|
+            case comp
+            when Card::TextBlock
+              lines << comp.content
+            when Card::Table
+              lines << "| #{comp.header.join(' | ')} |"
+              lines << "| #{comp.header.map { '-' * _1.length }.join(' | ')} |"
+              comp.rows.each { |row| lines << "| #{row.join(' | ')} |" }
+            when Card::Divider
+              lines << "---"
+            end
+          end
+          lines << ""
+        end
+        lines.join("\n").strip
+      end
+
       # Whether the channel connection is active.
       #
       # @return [Boolean]

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "channel_providers/version"
+require_relative "channel_providers/card"
 require_relative "channel_providers/adapter"
 require_relative "channel_providers/telegram"
 
