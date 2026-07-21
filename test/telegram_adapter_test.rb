@@ -251,6 +251,20 @@ class TelegramAdapterTest < Minitest::Test
     assert_equal "/projects", handler[:text] if handler
   end
 
+  def test_goal_command_passes_through_to_engine
+    handler = nil
+    @adapter.start { |msg| handler = msg }
+
+    @adapter.send(:handle_incoming, {
+      chat_id: 100, user_id: 123, text: "/goal",
+      is_group: false,
+      raw: { "message_id" => 1, "date" => 0, "chat" => { "id" => 100, "type" => "private" }, "from" => { "id" => 123 }, "text" => "/goal" }
+    })
+
+    refute_nil handler, "/goal should pass through to the engine"
+    assert_equal "/goal", handler[:text] if handler
+  end
+
   def test_non_command_messages_still_flow_to_engine
     received = false
     @adapter.start { |msg| received = true }
