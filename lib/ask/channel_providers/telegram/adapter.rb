@@ -43,6 +43,7 @@ module Ask
 
         # Send a text message, returns the message ID.
         def send_message(chat_id, text)
+          log("[response] #{text[0..80]}...")
           response = try_send_markdown(chat_id, text)
           response ||= @bot&.send_message(chat_id: chat_id, text: text)
           response&.dig("result", "message_id")
@@ -52,6 +53,7 @@ module Ask
 
         # Edit a previously sent message (streaming updates).
         def edit_message(chat_id, message_id, text)
+          log("[response] edit #{message_id}: #{text[0..60]}...")
           return unless @bot && message_id
           try_edit_markdown(chat_id, message_id, text) ||
             @bot.edit_message(chat_id: chat_id, message_id: message_id, text: text)
@@ -97,6 +99,14 @@ module Ask
 
         private
 
+        def log(msg)
+          if defined?(Ask::Coder::Log)
+            Ask::Coder::Log.debug(msg) rescue nil
+          else
+            STDERR.puts "[adapter] #{msg}"
+          end
+        end
+
         def try_send_markdown(chat_id, text)
           @bot&.send_message(chat_id: chat_id, text: text, parse_mode: "Markdown")
         rescue
@@ -118,6 +128,7 @@ module Ask
 
         # Send a rich card rendered as markdown + inline keyboards.
         def send_card(chat_id, card)
+          log("[send_card] #{card.sections.length} sections")
           lines = []
           buttons = []
 
@@ -147,13 +158,14 @@ module Ask
           text = lines.join("\n").strip
           return if text.empty?
 
+          log("[send_card] bot=#{!@bot.nil?} buttons=#{buttons.length} text=#{text.length}ch")
           if buttons.any?
             @bot&.send_keyboard_message(chat_id: chat_id, text: text, buttons: buttons)
           else
             @bot&.send_message(chat_id: chat_id, text: text, parse_mode: "Markdown")
           end
         rescue => e
-          Ask::Coder::Log.error("send_card failed", error: e.message) if defined?(Ask::Coder::Log)
+          log("[send_card] ERROR: #{e.message[0..80]}")
           nil
         end
 
