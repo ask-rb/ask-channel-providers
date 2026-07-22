@@ -72,6 +72,7 @@ module Ask
           params = { chat_id: chat_id, text: text }
           params[:parse_mode] = parse_mode if parse_mode
           @client.api.send_message(params)
+          log("[send] ✅ delivered")
         rescue ::Telegram::Bot::Exceptions::Base => e
           log("[send] FAIL: #{e.message[0..80]}")
           raise Ask::ChannelProviders::APIError, "Telegram API error: #{e.message}"

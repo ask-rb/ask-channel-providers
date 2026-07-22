@@ -108,13 +108,16 @@ module Ask
         end
 
         def try_send_markdown(chat_id, text)
-          @bot&.send_message(chat_id: chat_id, text: text, parse_mode: "Markdown")
+          # Escape underscores and brackets so session IDs and data don't break Markdown
+          safe = text.gsub("_", "\\_").gsub("[", "\\[")
+          @bot&.send_message(chat_id: chat_id, text: safe, parse_mode: "Markdown")
         rescue
           nil  # fall back to plain text
         end
 
         def try_edit_markdown(chat_id, message_id, text)
-          @bot&.edit_message(chat_id: chat_id, message_id: message_id, text: "⏳ #{text}", parse_mode: "Markdown")
+          safe = text.gsub("_", "\\_").gsub("[", "\\[")
+          @bot&.edit_message(chat_id: chat_id, message_id: message_id, text: "⏳ #{safe}", parse_mode: "Markdown")
         rescue
           nil  # fall back to plain text
         end
