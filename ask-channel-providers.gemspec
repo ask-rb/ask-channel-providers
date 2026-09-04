@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage
 
-  spec.files = Dir["lib/**/*", "LICENSE", "README.md"]
+  spec.files = Dir["lib/**/*", "LICENSE", "README.md", "CHANGELOG.md"]
   spec.require_paths = ["lib"]
 
   spec.add_dependency "telegram-bot-ruby", "~> 2.0"
