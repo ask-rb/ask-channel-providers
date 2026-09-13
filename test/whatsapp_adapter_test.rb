@@ -96,10 +96,27 @@ class WhatsAppAdapterTest < Minitest::Test
     message = payload.dig("entry", 0, "changes", 0, "value", "messages", 0)
     message["type"] = "image"
     message.delete("text")
+    message["image"] = {"id" => "media.1", "mime_type" => "image/jpeg", "caption" => "Which car is this?"}
 
     parsed = ADAPTER.parse(payload).first
     assert_equal "image", parsed.kind
     refute parsed.text?
+    assert parsed.media?
+    assert_equal "media.1", parsed.media_id
+    assert_equal "image/jpeg", parsed.media_type
+  end
+
+  def test_parse_reads_voice_notes_as_media
+    payload = Marshal.load(Marshal.dump(PAYLOAD))
+    message = payload.dig("entry", 0, "changes", 0, "value", "messages", 0)
+    message["type"] = "audio"
+    message.delete("text")
+    message["audio"] = {"id" => "media.2", "mime_type" => "audio/ogg; codecs=opus", "voice" => true}
+
+    parsed = ADAPTER.parse(payload).first
+    assert_equal "audio", parsed.kind
+    assert parsed.media?
+    assert_equal "media.2", parsed.media_id
   end
 
   def test_verify_signature_accepts_a_valid_signature

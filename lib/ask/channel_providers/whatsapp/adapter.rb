@@ -50,6 +50,7 @@ module Ask
 
           def build_message(raw, metadata, names)
             type = raw["type"].to_s
+            media = raw[type].is_a?(Hash) ? raw[type] : {}
             InboundMessage.new(
               provider: provider,
               external_uid: raw["from"].to_s,
@@ -58,7 +59,9 @@ module Ask
               kind: type,
               text: (raw.dig("text", "body").to_s if type == "text"),
               name: names.dig(raw["from"].to_s, "profile", "name"),
-              timestamp: raw["timestamp"].to_s
+              timestamp: raw["timestamp"].to_s,
+              media_id: media["id"],
+              media_type: media["mime_type"]
             )
           end
 
