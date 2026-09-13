@@ -19,6 +19,9 @@ following the keep-a-changelog format.
 - `Ask::ChannelProviders::WhatsApp` — WhatsApp Cloud API (Meta Graph API,
   direct): X-Hub-Signature-256 verification, webhook challenge, payload
   parsing, and a client that sends chunked text messages and read receipts.
+- Inbound media: `InboundMessage` carries `media_id`/`media_type`, and the
+  WhatsApp client downloads attachments (`#fetch_media`) through the Graph
+  API.
 
 ## [0.1.0] - 2026-09-04
 

@@ -93,6 +93,11 @@ module Ask
         def mark_read(message_id:)
           @client.mark_read(message_id: message_id)
         end
+
+        # Downloads an inbound attachment (image, voice note, document).
+        def media(media_id)
+          @client.fetch_media(media_id)
+        end
       end
     end
   end

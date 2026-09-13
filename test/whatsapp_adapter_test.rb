@@ -50,6 +50,11 @@ class WhatsAppAdapterTest < Minitest::Test
     def mark_read(message_id:)
       @read << message_id
     end
+
+    def fetch_media(media_id)
+      @read << media_id
+      {body: "BYTES", mime_type: "image/jpeg"}
+    end
   end
 
   def setup

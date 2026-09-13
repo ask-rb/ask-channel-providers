@@ -17,6 +17,12 @@ class WhatsAppClientTest < Minitest::Test
       payload = @body || {"messaging_product" => "whatsapp", "messages" => [{"id" => "wamid.1"}]}
       Ask::ChannelProviders::WhatsApp::Transport::Response.new(status: @status, body: JSON.generate(payload))
     end
+
+    def get(url:, headers: {})
+      @requests << {method: :get, url: url, headers: headers}
+      body = url.start_with?("https://cdn.example") ? "JPEGBYTES" : JSON.generate({"url" => "https://cdn.example/file", "mime_type" => "image/jpeg"})
+      Ask::ChannelProviders::WhatsApp::Transport::Response.new(status: 200, body: body)
+    end
   end
 
   def setup
@@ -65,6 +71,14 @@ class WhatsAppClientTest < Minitest::Test
 
   def test_chunks_keep_short_text_whole
     assert_equal ["One line"], @client.chunks("One line")
+  end
+
+  def test_fetch_media_downloads_the_bytes
+    media = @client.fetch_media("media.1")
+
+    assert_equal "JPEGBYTES", media[:body]
+    assert_equal "image/jpeg", media[:mime_type]
+    assert_equal 2, @transport.requests.count { |request| request[:method] == :get }
   end
 
   def test_graph_errors_raise_api_error

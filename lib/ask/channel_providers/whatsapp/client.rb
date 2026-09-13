@@ -51,6 +51,26 @@ module Ask
           })
         end
 
+        # Downloads an inbound attachment by its media handle: the Graph API
+        # answers a short-lived URL, which is fetched with the same bearer.
+        #
+        # @return [Hash] {body:, mime_type:} with the raw bytes
+        def fetch_media(media_id)
+          meta_response = @transport.get(
+            url: "#{BASE_URL}/#{@graph_version}/#{media_id}",
+            headers: {"Authorization" => "Bearer #{@access_token}"}
+          )
+          raise APIError, "graph api returned #{meta_response.status}: #{meta_response.body}" unless meta_response.success?
+
+          info = JSON.parse(meta_response.body)
+          file_response = @transport.get(url: info["url"], headers: {"Authorization" => "Bearer #{@access_token}"})
+          raise APIError, "media download returned #{file_response.status}" unless file_response.success?
+
+          {body: file_response.body, mime_type: info["mime_type"]}
+        rescue JSON::ParserError, SocketError, Timeout::Error, SystemCallError => e
+          raise APIError, e.message
+        end
+
         # Splits a reply into WhatsApp-sized messages at the last paragraph,
         # line, or word boundary before the limit.
         def chunks(text)

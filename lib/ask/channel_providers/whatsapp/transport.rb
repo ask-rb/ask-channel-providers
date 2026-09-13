@@ -24,6 +24,19 @@ module Ask
           request = Net::HTTP::Post.new(uri)
           headers.each { |key, value| request[key] = value }
           request.body = body
+          perform(uri, request)
+        end
+
+        def get(url:, headers: {})
+          uri = URI(url)
+          request = Net::HTTP::Get.new(uri)
+          headers.each { |key, value| request[key] = value }
+          perform(uri, request)
+        end
+
+        private
+
+        def perform(uri, request)
           response = Net::HTTP.start(
             uri.host, uri.port,
             use_ssl: uri.scheme == "https",
